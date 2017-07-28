@@ -112,6 +112,27 @@ func (c *forwardClient) decodeEntries() ([]FluentRecordSet, error) {
 
 	var retval []FluentRecordSet
 	switch timestamp_or_entries := v[1].(type) {
+	case int64:
+		timestamp := timestamp_or_entries
+		if timestamp < 0 {
+			return nil, errors.New(fmt.Sprintf("Invalid timestamp: %t", timestamp_or_entries))
+		}
+		data, ok := v[2].(map[string]interface{})
+		if !ok {
+			return nil, errors.New("Failed to decode data field")
+		}
+		coerceInPlace(data)
+		retval = []FluentRecordSet{
+			{
+				Tag: string(tag), // XXX: byte => rune
+				Records: []TinyFluentRecord{
+					{
+						Timestamp: uint64(timestamp),
+						Data:      data,
+					},
+				},
+			},
+		}
 	case uint64:
 		timestamp := timestamp_or_entries
 		data, ok := v[2].(map[string]interface{})
